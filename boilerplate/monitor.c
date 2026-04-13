@@ -39,6 +39,19 @@
  *   - remember whether the soft-limit warning was already emitted
  *   - include `struct list_head` linkage
  * ============================================================== */
+/* TODO 1: Node structure */
+struct container_node {
+    pid_t pid;
+    char container_id[32]; // Adjust size based on your monitor_ioctl.h
+    unsigned long soft_limit;
+    unsigned long hard_limit;
+    bool soft_warn_emitted;
+    struct list_head list;
+};
+
+/* TODO 2: Global list and lock */
+static LIST_HEAD(monitored_processes);
+static DEFINE_SPINLOCK(monitor_lock);
 
 
 /* ==============================================================
@@ -143,6 +156,35 @@ static void timer_callback(struct timer_list *t)
      *   - enforce hard limit and then remove the entry
      *   - avoid use-after-free while deleting during iteration
      * ============================================================== */
+    struct container_node *entry, *tmp;
+    unsigned long flags;
+
+    spin_lock_irqsave(&monitor_lock, flags);
+    list_for_each_entry_safe(entry, tmp, &monitored_processes, list) {
+        long rss = get_rss_bytes(entry->pid);
+
+        if (rss == -1) {
+            /* Process is dead */
+            list_del(&entry->list);
+            kfree(entry);
+            continue;
+        }
+
+        if (rss > entry->hard_limit) {
+            kill_process(entry->container_id, entry->pid, entry->hard_limit, rss);
+            list_del(&entry->list);
+            kfree(entry);
+        } else if (rss > entry->soft_limit) {
+            if (!entry->soft_warn_emitted) {
+                log_soft_limit_event(entry->container_id, entry->pid, entry->soft_limit, rss);
+                entry->soft_warn_emitted = true;
+            }
+        } else {
+            /* Reset warning if they go back under the limit */
+            entry->soft_warn_emitted = false;
+        }
+    }
+    spin_unlock_irqrestore(&monitor_lock, flags);
 
     mod_timer(&monitor_timer, jiffies + CHECK_INTERVAL_SEC * HZ);
 }
@@ -179,6 +221,18 @@ static long monitor_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
          *   - validate allocation and limits
          *   - insert into the shared list under the chosen lock
          * ============================================================== */
+        struct container_node *new_node = kmalloc(sizeof(*new_node), GFP_KERNEL);
+if (!new_node) return -ENOMEM;
+
+new_node->pid = req.pid;
+new_node->soft_limit = req.soft_limit_bytes;
+new_node->hard_limit = req.hard_limit_bytes;
+new_node->soft_warn_emitted = false;
+strncpy(new_node->container_id, req.container_id, sizeof(new_node->container_id) - 1);
+
+spin_lock_irqsave(&monitor_lock, flags);
+list_add(&new_node->list, &monitored_processes);
+spin_unlock_irqrestore(&monitor_lock, flags);
 
         return 0;
     }
@@ -195,6 +249,20 @@ static long monitor_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
      *   - remove the matching entry safely if found
      *   - return status indicating whether a matching entry was removed
      * ============================================================== */
+    struct container_node *entry, *tmp;
+bool found = false;
+
+spin_lock_irqsave(&monitor_lock, flags);
+list_for_each_entry_safe(entry, tmp, &monitored_processes, list) {
+    if (entry->pid == req.pid) {
+        list_del(&entry->list);
+        kfree(entry);
+        found = true;
+        break; 
+    }
+}
+spin_unlock_irqrestore(&monitor_lock, flags);
+return found ? 0 : -ENOENT;
 
     return -ENOENT;
 }
@@ -245,6 +313,7 @@ static int __init monitor_init(void)
 /* --- Provided: Module Exit --- */
 static void __exit monitor_exit(void)
 {
+    struct container_node *entry, *tmp;
     del_timer_sync(&monitor_timer);
 
     /* ==============================================================
@@ -254,6 +323,12 @@ static void __exit monitor_exit(void)
      *   - remove and free every list node safely
      *   - leave no leaked state on module unload
      * ============================================================== */
+    spin_lock(&monitor_lock);
+    list_for_each_entry_safe(entry, tmp, &monitored_processes, list) {
+        list_del(&entry->list);
+        kfree(entry);
+    }
+    spin_unlock(&monitor_lock);
 
     cdev_del(&c_dev);
     device_destroy(cl, dev_num);
