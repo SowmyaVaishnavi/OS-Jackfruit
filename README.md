@@ -35,9 +35,16 @@
 --> Remove the socket file if it persists: sudo rm /tmp/mini_runtime.sock
 
 3.JDC
-  1. Multi-container Supervision & Scheduling
+  1. Multi-container Supervision & Scheduling :
      This screenshot demonstrates the supervisor managing multiple containers simultaneously. It shows the successful launch of container c1 (PID 4045) followed by c2 (PID 4055) under a single long-running supervisor process, fulfilling the requirement for concurrent container tracking and scheduling.
+     
 ![WhatsApp Image 2026-04-14 at 5 37 08 PM](https://github.com/user-attachments/assets/07ed68bb-666a-4c3a-811d-2002c017fb51)
+
+2. Metadata Tracking :
+This output shows the supervisor's ability to track container metadata in real-time. Each started container is assigned a unique name and host PID, which the supervisor persists in its internal state to manage the container lifecycle.
+
+<img width="940" height="152" alt="image" src="https://github.com/user-attachments/assets/9246b050-6f8a-4bf5-8e5d-d9f46292d190" />
+
 
 
 
