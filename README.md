@@ -35,7 +35,8 @@
 
 --> Remove the socket file if it persists: sudo rm /tmp/mini_runtime.sock
 
-3.
+3.Demo with Screenshots
+
   1.	Multi-container supervision:
 "Initial supervisor deployment and multi-container lifecycle tracking. The screenshot shows the supervisor daemon initializing on a Unix Domain Socket and successfully spawning container c1. By capturing and logging the Host PID (4045), the supervisor establishes the foundation for managing isolated process groups and tracking their state from creation through execution."
 
