@@ -44,19 +44,19 @@
 <img width="950" height="139" alt="image" src="https://github.com/user-attachments/assets/667b04df-b98a-4659-9136-baa33a935fd7" />
 
 
-2.Metadata Tracking:
+  2.Metadata Tracking:
  "This screenshot demonstrates the system's metadata tracking capabilities. By executing the ps command, the CLI retrieves and displays the internal state of the supervisor via Unix Domain Sockets. The table confirms that the supervisor is actively tracking unique Container IDs (c1, c2) alongside their respective Host PIDs, proving successful user-space state management."
 
  ![WhatsApp Image 2026-04-14 at 6 10 32 PM](https://github.com/user-attachments/assets/b4b65cd2-5e9f-40a6-946d-5e72247e7881)
 
  ![WhatsApp Image 2026-04-14 at 6 09 59 PM](https://github.com/user-attachments/assets/049ba2a0-7a5e-4a84-a167-28aa4d4e48d2)
 
- 3.Bounded-buffer logging:
+  3.Bounded-buffer logging:
  This screenshot shows the contents of c2.log, confirming that stdout from the containerized ls command was successfully captured, buffered, and persisted to the host filesystem by the supervisor.
 
  ![WhatsApp Image 2026-04-14 at 6 15 45 PM](https://github.com/user-attachments/assets/c4c55b70-3790-429b-a64a-018978aa1a10)
 
- 4.CLI and IPC:
+  4.CLI and IPC:
  This screenshot demonstrates the functional IPC channel between the CLI and the supervisor. By issuing the start command, the CLI communicates with the long-running supervisor daemon via a Unix Domain Socket (/tmp/mini_runtime.sock). The supervisor successfully processes the request and sends back a 'Container Started' response, proving the two-way command-and-control pipeline is operational."
 
 ![WhatsApp Image 2026-04-14 at 6 23 21 PM](https://github.com/user-attachments/assets/058471f9-c7fa-4cff-9909-7e97ab253159)
@@ -80,7 +80,6 @@ This screenshot of the kernel buffer (dmesg) shows the monitor module identifyin
 Following the termination of the supervisor, a system-wide process check (ps aux | grep engine) confirms that all container processes have been successfully reaped and the supervisor daemon has exited. This demonstrates effective resource management, ensuring no zombie processes or orphan containers remain active on the host.
 
 ![WhatsApp Image 2026-04-14 at 7 34 42 PM](https://github.com/user-attachments/assets/0010915c-6261-4e87-ba75-a7954e825f7e)
-
 
 4. Engineering Analysis
 
