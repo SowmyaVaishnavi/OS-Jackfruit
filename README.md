@@ -35,40 +35,52 @@
 --> Remove the socket file if it persists: sudo rm /tmp/mini_runtime.sock
 
 3.
-  1. Multi-container Supervision: "Supervisor debug logs showing the successful concurrent management of containers c1 and c2 with unique PIDs."
-     
-![WhatsApp Image 2026-04-14 at 5 37 08 PM](https://github.com/user-attachments/assets/07ed68bb-666a-4c3a-811d-2002c017fb51)
+  1.	Multi-container supervision:
+"Initial supervisor deployment and multi-container lifecycle tracking. The screenshot shows the supervisor daemon initializing on a Unix Domain Socket and successfully spawning container c1. By capturing and logging the Host PID (4045), the supervisor establishes the foundation for managing isolated process groups and tracking their state from creation through execution."
 
-2. Metadata Tracking: "Supervisor output demonstrating the capture and tracking of Container IDs and Host PIDs in user-space memory."
-
-<img width="940" height="152" alt="image" src="https://github.com/user-attachments/assets/9246b050-6f8a-4bf5-8e5d-d9f46292d190" />
+![WhatsApp Image 2026-04-14 at 7 32 40 PM](https://github.com/user-attachments/assets/ff40cc09-e489-409e-8c2c-94b8bf299651)
+<img width="950" height="139" alt="image" src="https://github.com/user-attachments/assets/667b04df-b98a-4659-9136-baa33a935fd7" />
 
 
+2.Metadata Tracking:
+ "This screenshot demonstrates the system's metadata tracking capabilities. By executing the ps command, the CLI retrieves and displays the internal state of the supervisor via Unix Domain Sockets. The table confirms that the supervisor is actively tracking unique Container IDs (c1, c2) alongside their respective Host PIDs, proving successful user-space state management."
+
+ ![WhatsApp Image 2026-04-14 at 6 10 32 PM](https://github.com/user-attachments/assets/b4b65cd2-5e9f-40a6-946d-5e72247e7881)
+
+ ![WhatsApp Image 2026-04-14 at 6 09 59 PM](https://github.com/user-attachments/assets/049ba2a0-7a5e-4a84-a167-28aa4d4e48d2)
+
+ 3.Bounded-buffer logging:
+ This screenshot shows the contents of c2.log, confirming that stdout from the containerized ls command was successfully captured, buffered, and persisted to the host filesystem by the supervisor.
+
+ ![WhatsApp Image 2026-04-14 at 6 15 45 PM](https://github.com/user-attachments/assets/c4c55b70-3790-429b-a64a-018978aa1a10)
+
+ 4.CLI and IPC:
+ This screenshot demonstrates the functional IPC channel between the CLI and the supervisor. By issuing the start command, the CLI communicates with the long-running supervisor daemon via a Unix Domain Socket (/tmp/mini_runtime.sock). The supervisor successfully processes the request and sends back a 'Container Started' response, proving the two-way command-and-control pipeline is operational."
+
+![WhatsApp Image 2026-04-14 at 6 23 21 PM](https://github.com/user-attachments/assets/058471f9-c7fa-4cff-9909-7e97ab253159)
+
+5.	Soft-limit warning:
+This screenshot of the system log (dmesg) shows the monitor module identifying a soft-limit breach. It demonstrates that the runtime can track Resident Set Size (RSS) and issue a warning once the container exceeds its 128KB soft threshold, providing observability while allowing the process to continue running.
+
+![WhatsApp Image 2026-04-14 at 7 19 11 PM](https://github.com/user-attachments/assets/8abee3f5-c8c1-4536-a942-52a26afd62d3)
+
+6.	Hard-limit enforcement:
+This screenshot of the kernel buffer (dmesg) shows the monitor module identifying a hard-limit violation. Upon detecting that the container's memory usage exceeded the maximum allowed threshold, the module successfully triggered a SIGKILL to terminate the process. This demonstrates the runtime's capability to protect host system stability from rogue or high-consumption containers.
+
+![WhatsApp Image 2026-04-14 at 7 12 25 PM](https://github.com/user-attachments/assets/cc002b57-151c-4b84-babc-fdef0021c3b4)
+
+7.	Scheduling experiment:
+   The supervisor is seen handling overlapping requests to launch containers c1 and c2. By assigning and tracking distinct PIDs (4045 and 4055) for these processes, the runtime demonstrates its ability to coordinate with the host's CPU scheduler to maintain execution flow for multiple independent isolated environments.
+
+![WhatsApp Image 2026-04-14 at 5 37 08 PM](https://github.com/user-attachments/assets/91680bfe-2689-4582-983a-61938ea0ba89)
+
+8.	Clean teardown:
+Following the termination of the supervisor, a system-wide process check (ps aux | grep engine) confirms that all container processes have been successfully reaped and the supervisor daemon has exited. This demonstrates effective resource management, ensuring no zombie processes or orphan containers remain active on the host.
+
+![WhatsApp Image 2026-04-14 at 7 34 42 PM](https://github.com/user-attachments/assets/0010915c-6261-4e87-ba75-a7954e825f7e)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-     
-     
-
-
-4. Engineering Analysis
+3. Engineering Analysis
 
 --> Isolation Mechanisms
 Our runtime achieves process and filesystem isolation primarily through the use of Linux Namespaces. The PID namespace ensures that processes inside the container cannot see or interfere with processes on the host system or in other containers. The UTS namespace allows each container to maintain its own hostname identity. For filesystem isolation, we use the chroot mechanism to change the root directory of the container to a specific copy of the rootfs-base. This creates a "jail" where the container only sees its assigned files. Despite this isolation, the host kernel is still shared among all containers; they share the same syscall interface and memory management, which provides high efficiency compared to traditional virtual machines.
