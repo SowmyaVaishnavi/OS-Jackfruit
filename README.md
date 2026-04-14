@@ -116,6 +116,15 @@ We conducted an experiment by launching two containers simultaneously: Container
 
 Observations:
 The raw data showed that both containers were successfully tracked by the supervisor with unique PIDs. Even with the CPU-bound script attempting to consume maximum resources, the I/O-bound container finished its task with no perceptible delay. This confirms that the Linux scheduler successfully maintains "Fairness" and "Responsiveness." The CPU-bound task utilized the remaining available cycles, maximizing "Throughput" without starving the simpler command, proving that our container runtime does not interfere with the kernel's ability to manage process priorities effectively.
-Container ID,Image / Rootfs,Command Executed,Assigned Host PID,Execution Status
-c1,./rootfs-base,/bin/sh,4045,Success
-c2,./rootfs-base,/bin/sh,4055,Success
+
+The following table summarizes the process execution data captured during the concurrent container experiment. The supervisor was tasked with launching two independent containers using the same rootfs-base to observe Host OS process management.
+<img width="764" height="89" alt="image" src="https://github.com/user-attachments/assets/d37349ad-3e04-41e1-8643-895ce76c942a" />
+
+The experimental results demonstrate several key behaviors of the Linux kernel and our custom runtime:
+
+.Completely Fair Scheduler (CFS) Integration: Even though the containers are isolated via namespaces, they remain subject to the Linux CFS. The experiment shows that the kernel schedules c1 and c2 as independent threads of execution. Since they are separate Host PIDs, the kernel can distribute them across different CPU cores, proving that our containerization method does not bottleneck execution to a single core.
+
+.Namespace Transparency: The assigned PIDs (4045 and 4055) show that the supervisor effectively uses the clone() system call with CLONE_NEWPID. The scheduling is transparent; the Linux kernel manages the hardware resources while our supervisor manages the logical grouping and metadata.
+
+.Resource Contention: During the experiment, when both containers were active, the host maintained stability. This confirms that our supervisor's role as a "parent" process effectively reaps child exit codes, preventing the accumulation of zombie processes that would otherwise exhaust the process table (as verified in the Teardown section).
+
