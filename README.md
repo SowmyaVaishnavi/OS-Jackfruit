@@ -82,7 +82,7 @@ Following the termination of the supervisor, a system-wide process check (ps aux
 ![WhatsApp Image 2026-04-14 at 7 34 42 PM](https://github.com/user-attachments/assets/0010915c-6261-4e87-ba75-a7954e825f7e)
 
 
-3. Engineering Analysis
+4. Engineering Analysis
 
 --> Isolation Mechanisms
 Our runtime achieves process and filesystem isolation primarily through the use of Linux Namespaces. The PID namespace ensures that processes inside the container cannot see or interfere with processes on the host system or in other containers. The UTS namespace allows each container to maintain its own hostname identity. For filesystem isolation, we use the chroot mechanism to change the root directory of the container to a specific copy of the rootfs-base. This creates a "jail" where the container only sees its assigned files. Despite this isolation, the host kernel is still shared among all containers; they share the same syscall interface and memory management, which provides high efficiency compared to traditional virtual machines.
