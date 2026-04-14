@@ -2,6 +2,7 @@
    H S Deeksha Prasad - PES2UG24CS126
 
 2. Build, Load, and Run Instructions
+
 --> Build the Project
    To compile the supervisor, the CLI engine, and the kernel monitoring module, run the following command from the root          directory:
    make clean && make
